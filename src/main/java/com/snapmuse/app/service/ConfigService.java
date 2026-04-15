@@ -141,7 +141,13 @@ public class ConfigService {
         endpoints.add(new ApiEndpointConfig("兜底接口 1", "https://api.openai.com/v1", "", "gpt-4.1-mini"));
         endpoints.add(new ApiEndpointConfig("兜底接口 2", "https://api.openai.com/v1", "", "gpt-4.1-mini"));
         config.setApiConfigs(endpoints);
-        config.setSystemPrompt("你是 SnapMuse 的截图问答助手。请结合用户问题和截图内容，用清晰、准确、简洁的中文回答。");
+        config.setSystemPrompt("""
+                请根据我发的题目图片答题。先识别题目内容，再按题型作答：
+                - 单选题：给正确选项+一句原因
+                - 多选题：给全部正确选项+简要判断
+                - 场景题：先给结论，再简要分析
+                - 编码题：给可运行代码，并简要说明思路
+                """.trim());
         config.setScreenshotDirectory(appRoot.resolve("snapmuse-data").resolve("screenshots").toString());
         config.setScrollUpHotkey("ALT+UP");
         config.setScrollDownHotkey("ALT+DOWN");
