@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="SnapMuse — AI 截图问答工具，截图即问答">
+    <title>SnapMuse</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+
+<!-- ===== 顶栏 ===== -->
+<header class="topbar" id="topbar">
+    <div class="topbar-left">
+        <span id="statusLamp" class="lamp lamp-off" title="状态指示"></span>
+        <span id="statusMessage" class="status-msg"></span>
+    </div>
+    <div class="topbar-right">
+        <span id="pendingLabel" class="pending-label"></span>
+        <button id="clearHistoryBtn" class="btn-clear-history" type="button" title="清空对话记录" onclick="clearChatHistory()">清空记录</button>
+        <button id="openSettingsBtn" class="btn-settings" type="button" title="打开设置">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.07 4.93A10 10 0 0 0 4.93 19.07M19.07 4.93A10 10 0 0 1 4.93 19.07"></path>
+                <path d="M12 2v2M12 20v2M2 12h2M20 12h2"></path>
+            </svg>
+            设置
+        </button>
+    </div>
+</header>
+
+<!-- ===== 对话区（唯一主体，充满剩余高度并可滚动） ===== -->
+<main id="chatLog" class="chat-log" role="log" aria-label="对话记录" aria-live="polite"></main>
+
+<!-- ===== 设置弹窗 ===== -->
+<dialog id="settingsDialog" class="settings-dialog" aria-labelledby="settingsTitle">
+    <form id="settingsForm" class="settings-form" novalidate>
+        <div class="settings-header">
+            <h2 id="settingsTitle">⚙️ 设置</h2>
+            <button id="closeSettingsBtn" class="btn-icon-close" type="button" aria-label="关闭设置">✕</button>
+        </div>
+
+        <section class="settings-section">
+            <h3>API 配置</h3>
+            <div id="apiConfigList" class="api-config-list"></div>
+        </section>
+
+        <section class="settings-section">
+            <h3>系统提示词</h3>
+            <textarea id="systemPromptInput" class="settings-textarea" placeholder="在此输入系统提示词…"></textarea>
+        </section>
+
+        <section class="settings-section inline-grid">
+            <label>
+                <span>截图保存目录</span>
+                <input id="screenshotDirectoryInput" type="text" placeholder="/path/to/screenshots">
+            </label>
+            <label>
+                <span>上滚快捷键</span>
+                <input id="scrollUpHotkeyInput" type="text" placeholder="ALT+UP">
+            </label>
+            <label>
+                <span>下滚快捷键</span>
+                <input id="scrollDownHotkeyInput" type="text" placeholder="ALT+DOWN">
+            </label>
+        </section>
+
+        <div class="settings-footer">
+            <button class="btn-save" type="submit">保存设置</button>
+        </div>
+    </form>
+</dialog>
+
+<script src="/app.js?v=light-theme-1"></script>
+</body>
+</html>
