@@ -96,6 +96,19 @@ public class ConfigService {
         }
     }
 
+    public AppConfig selectApiByIndex(int index) throws IOException {
+        synchronized (lock) {
+            reloadConfigFromDiskQuietly();
+            int size = currentConfig.getApiConfigs().size();
+            int clamped = Math.max(0, Math.min(index, size - 1));
+            currentConfig.setPreferredApiIndex(clamped);
+            persist(currentConfig);
+            runtimeStateService.applyConfig(currentConfig);
+            log.info("Model selected by index={}, display={}", clamped, buildModelDisplay(currentConfig, clamped));
+            return objectMapper.convertValue(currentConfig, AppConfig.class);
+        }
+    }
+
     public AppConfig updateFallbackEnabled(boolean enabled) throws IOException {
         synchronized (lock) {
             reloadConfigFromDiskQuietly();

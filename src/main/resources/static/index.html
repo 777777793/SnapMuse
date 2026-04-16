@@ -7,7 +7,7 @@
     <title>SnapMuse</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/style.css">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
@@ -18,36 +18,65 @@
 
 <!-- ===== 底部工具栏 ===== -->
 <footer class="toolbar" id="toolbar">
-    <div class="toolbar-status">
-        <span id="statusLamp" class="lamp lamp-off" title="状态指示"></span>
-        <div class="toolbar-status-copy">
-            <span id="statusMessage" class="status-msg"></span>
-            <span id="pendingLabel" class="pending-label"></span>
+    <div class="toolbar-shell">
+        <!-- 状态 -->
+        <div class="status-section">
+            <span id="statusLamp" class="lamp lamp-off" title="状态指示" aria-hidden="true"></span>
+            <div class="status-text">
+                <span id="statusMessage" class="status-msg"></span>
+                <span id="pendingLabel" class="pending-label"></span>
+            </div>
         </div>
-    </div>
-    <div class="toolbar-model">
-        <div class="toolbar-model-copy">
-            <span class="toolbar-label">当前模型</span>
-            <button id="switchModelBtn" class="btn-model-switch" type="button" title="切换优先模型">
-                <span id="activeModelDisplay" class="active-model-display">未配置模型</span>
-                <span class="btn-model-switch-hint">切换</span>
+
+        <div class="toolbar-sep"></div>
+
+        <!-- 模型选择 -->
+        <div class="model-section">
+            <div class="model-trigger-wrap">
+                <button id="switchModelBtn" class="model-trigger" type="button" title="选择模型">
+                    <svg class="model-trigger-icon" viewBox="0 0 16 16" fill="none">
+                        <circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.4"/>
+                        <path d="M8 2v1.5M8 12.5V14M2 8h1.5M12.5 8H14M3.7 3.7l1.1 1.1M11.2 11.2l1.1 1.1M3.7 12.3l1.1-1.1M11.2 4.8l1.1-1.1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+                    </svg>
+                    <span id="activeModelDisplay" class="model-trigger-name">未配置模型</span>
+                    <svg class="model-trigger-chevron" viewBox="0 0 10 6" fill="none">
+                        <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+                <div id="modelPicker" class="model-picker" hidden>
+                    <div id="modelPickerList" class="model-picker-list"></div>
+                </div>
+            </div>
+            <label class="fallback-toggle" for="fallbackToggle" title="允许降级到备用模型">
+                <span class="fallback-text">降级</span>
+                <span class="toggle-control">
+                    <input id="fallbackToggle" type="checkbox">
+                    <span class="fallback-switch"></span>
+                </span>
+            </label>
+        </div>
+
+        <div class="toolbar-sep"></div>
+
+        <!-- 操作 -->
+        <div class="action-section">
+            <button id="clearHistoryBtn" class="tool-btn tool-btn-danger" type="button" title="清空记录">
+                <svg viewBox="0 0 20 20" fill="none">
+                    <path d="M6.5 8.5v6M10 8.5v6M13.5 8.5v6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                    <path d="M4.5 6.5h11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                    <path d="M8 6.5V5h4v1.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+                    <rect x="5.5" y="6.5" width="9" height="8.5" rx="1.5" stroke="currentColor" stroke-width="1.4"/>
+                </svg>
+            </button>
+            <button id="openSettingsBtn" class="tool-btn" type="button" title="设置">
+                <svg viewBox="0 0 20 20" fill="none">
+                    <path d="M4 5.5h12M4 10h12M4 14.5h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                    <circle cx="7.5" cy="5.5" r="2" fill="white" stroke="currentColor" stroke-width="1.4"/>
+                    <circle cx="12.5" cy="10" r="2" fill="white" stroke="currentColor" stroke-width="1.4"/>
+                    <circle cx="7.5" cy="14.5" r="2" fill="white" stroke="currentColor" stroke-width="1.4"/>
+                </svg>
             </button>
         </div>
-        <label class="fallback-toggle" for="fallbackToggle">
-            <input id="fallbackToggle" type="checkbox">
-            <span>允许降级</span>
-        </label>
-    </div>
-    <div class="toolbar-actions">
-        <button id="clearHistoryBtn" class="btn-clear-history" type="button" title="清空对话记录">清空记录</button>
-        <button id="openSettingsBtn" class="btn-settings" type="button" title="打开设置">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="3"></circle>
-                <path d="M19.07 4.93A10 10 0 0 0 4.93 19.07M19.07 4.93A10 10 0 0 1 4.93 19.07"></path>
-                <path d="M12 2v2M12 20v2M2 12h2M20 12h2"></path>
-            </svg>
-            设置
-        </button>
     </div>
 </footer>
 
@@ -55,7 +84,7 @@
 <dialog id="settingsDialog" class="settings-dialog" aria-labelledby="settingsTitle">
     <form id="settingsForm" class="settings-form" novalidate>
         <div class="settings-header">
-            <h2 id="settingsTitle">⚙️ 设置</h2>
+            <h2 id="settingsTitle">设置</h2>
             <button id="closeSettingsBtn" class="btn-icon-close" type="button" aria-label="关闭设置">✕</button>
         </div>
 
@@ -96,6 +125,6 @@
     </form>
 </dialog>
 
-<script src="/app.js?v=settings-scroll-2"></script>
+<script src="/app.js?v=model-picker-1"></script>
 </body>
 </html>

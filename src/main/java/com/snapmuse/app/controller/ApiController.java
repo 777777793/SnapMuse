@@ -2,6 +2,7 @@ package com.snapmuse.app.controller;
 
 import com.snapmuse.app.dto.AskRequest;
 import com.snapmuse.app.dto.FallbackToggleRequest;
+import com.snapmuse.app.dto.ModelSelectRequest;
 import com.snapmuse.app.dto.StartSelectionRequest;
 import com.snapmuse.app.model.AppConfig;
 import com.snapmuse.app.service.ChatHistoryService;
@@ -84,6 +85,15 @@ public class ApiController {
             return configService.cyclePreferredApiIndex();
         } catch (IOException ex) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "切换模型失败: " + ex.getMessage(), ex);
+        }
+    }
+
+    @PostMapping("/model/select")
+    public AppConfig selectModel(@RequestBody ModelSelectRequest request) {
+        try {
+            return configService.selectApiByIndex(request.getIndex());
+        } catch (IOException ex) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "选择模型失败: " + ex.getMessage(), ex);
         }
     }
 

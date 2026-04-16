@@ -17,6 +17,8 @@ const el = {
   pendingLabel:            document.getElementById("pendingLabel"),
   activeModelDisplay:      document.getElementById("activeModelDisplay"),
   switchModelBtn:          document.getElementById("switchModelBtn"),
+  modelPicker:             document.getElementById("modelPicker"),
+  modelPickerList:         document.getElementById("modelPickerList"),
   fallbackToggle:          document.getElementById("fallbackToggle"),
   chatLog:                 document.getElementById("chatLog"),
   clearHistoryBtn:         document.getElementById("clearHistoryBtn"),
@@ -211,9 +213,9 @@ function renderHistory() {
   if (!list.length) {
     el.chatLog.innerHTML = `
       <div class="empty-state">
-        <span class="empty-state-icon">📸</span>
-        <span>还没有对话记录</span>
-        <span>截图后将自动在此显示问答内容</span>
+        <div class="empty-state-graphic" aria-hidden="true"></div>
+        <span class="empty-state-title">还没有对话记录</span>
+        <span class="empty-state-subtitle">截图后将自动在此显示问答内容</span>
       </div>`;
     state.lastHistoryTailKey = "";
     return;
@@ -224,7 +226,7 @@ function renderHistory() {
     const roleLabel = isUser ? "你" : "AI";
     const statusClass = message.status === "error" ? " is-error" : "";
     const screenshot = message.screenshotPath
-      ? `<div class="chat-screenshot">📷 ${escapeHtml(message.screenshotPath)}</div>`
+      ? `<div class="chat-screenshot">${escapeHtml(message.screenshotPath)}</div>`
       : "";
     // 用户消息保持纯文本，AI 消息渲染 Markdown
     const contentHtml = isUser
@@ -308,6 +310,55 @@ function startPolling() {
   }, 1000);
 }
 
+/* ---------- 模型选择面板 ---------- */
+const PICK_CHECK_SVG = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7l4 4 6-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+function buildModelPicker() {
+  const configs = state.config?.apiConfigs || [];
+  const currentIndex = state.config?.preferredApiIndex ?? 0;
+  el.modelPickerList.innerHTML = "";
+  configs.forEach((endpoint, i) => {
+    const hasContent = endpoint.name?.trim() || endpoint.model?.trim();
+    const displayName = endpoint.name?.trim() || `接口 ${i + 1}`;
+    const displayModel = endpoint.model?.trim() || "未配置";
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "model-picker-item" + (i === currentIndex ? " is-active" : "");
+    item.disabled = !hasContent;
+    item.innerHTML = `
+      <span class="picker-check">${i === currentIndex ? PICK_CHECK_SVG : ""}</span>
+      <span class="picker-info">
+        <span class="picker-name">${escapeHtml(displayName)}</span>
+        <span class="picker-model">${escapeHtml(displayModel)}</span>
+      </span>`;
+    item.addEventListener("click", async () => {
+      closePicker();
+      try {
+        state.config = await api("/api/model/select", {
+          method: "POST",
+          body: JSON.stringify({ index: i }),
+        });
+        applyRuntime(await api("/api/state"));
+        renderSettings();
+      } catch (error) {
+        window.alert(`选择模型失败：${error.message}`);
+      }
+    });
+    el.modelPickerList.appendChild(item);
+  });
+}
+
+function openPicker() {
+  buildModelPicker();
+  el.modelPicker.hidden = false;
+  el.switchModelBtn.setAttribute("aria-expanded", "true");
+}
+
+function closePicker() {
+  el.modelPicker.hidden = true;
+  el.switchModelBtn.removeAttribute("aria-expanded");
+}
+
 /* ---------- 事件绑定 ---------- */
 el.openSettingsBtn.addEventListener("click", async () => {
   try {
@@ -343,16 +394,23 @@ if (el.clearHistoryBtn) {
 }
 
 if (el.switchModelBtn) {
-  el.switchModelBtn.addEventListener("click", async () => {
-    try {
-      state.config = await api("/api/model/next", { method: "POST" });
-      applyRuntime(await api("/api/state"));
-      renderSettings();
-    } catch (error) {
-      window.alert(`切换模型失败：${error.message}`);
+  el.switchModelBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (el.modelPicker.hidden) {
+      openPicker();
+    } else {
+      closePicker();
     }
   });
 }
+
+document.addEventListener("click", (e) => {
+  if (el.modelPicker && !el.modelPicker.hidden) {
+    if (!el.switchModelBtn.contains(e.target) && !el.modelPicker.contains(e.target)) {
+      closePicker();
+    }
+  }
+});
 
 if (el.fallbackToggle) {
   el.fallbackToggle.addEventListener("change", async () => {
