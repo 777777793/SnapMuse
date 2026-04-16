@@ -20,6 +20,13 @@ import org.springframework.stereotype.Service;
 @Service
 public class ConfigService {
 
+    public static final String DEFAULT_SYSTEM_PROMPT = """
+            请根据我发的题目图片答题。先识别题目内容，再按题型作答：
+            - 单选题：给正确选项+一句原因
+            - 多选题：给全部正确选项+简要判断
+            - 场景题：先给结论，再简要分析
+            - 编码题：给可运行代码，并简要说明思路
+            """.trim();
     private static final Logger log = LoggerFactory.getLogger(ConfigService.class);
     private static final Pattern SYSTEM_PROMPT_PATTERN = Pattern.compile(
             "(\"systemPrompt\"\\s*:\\s*\")(.*?)(\",\\s*\"(?:screenshotDirectory|scrollUpHotkey|scrollDownHotkey)\")",
@@ -141,13 +148,7 @@ public class ConfigService {
         endpoints.add(new ApiEndpointConfig("兜底接口 1", "https://api.openai.com/v1", "", "gpt-4.1-mini"));
         endpoints.add(new ApiEndpointConfig("兜底接口 2", "https://api.openai.com/v1", "", "gpt-4.1-mini"));
         config.setApiConfigs(endpoints);
-        config.setSystemPrompt("""
-                请根据我发的题目图片答题。先识别题目内容，再按题型作答：
-                - 单选题：给正确选项+一句原因
-                - 多选题：给全部正确选项+简要判断
-                - 场景题：先给结论，再简要分析
-                - 编码题：给可运行代码，并简要说明思路
-                """.trim());
+        config.setSystemPrompt(DEFAULT_SYSTEM_PROMPT);
         config.setScreenshotDirectory(appRoot.resolve("snapmuse-data").resolve("screenshots").toString());
         config.setScrollUpHotkey("ALT+UP");
         config.setScrollDownHotkey("ALT+DOWN");

@@ -39,6 +39,9 @@ public class AiService {
 
     public String ask(String question, Path imagePath) throws IOException, InterruptedException {
         AppConfig config = configService.getConfig();
+        String effectiveSystemPrompt = normalizeSystemPrompt(config.getSystemPrompt());
+        String trimmedQuestion = question == null ? "" : question.trim();
+        String imageDataUrl = encodeImageDataUrl(imagePath);
         List<String> failures = new ArrayList<>();
         for (ApiEndpointConfig endpoint : config.getApiConfigs()) {
             if (!isUsable(endpoint)) {
@@ -50,8 +53,11 @@ public class AiService {
                         safe(endpoint.getBaseUrl()),
                         safe(endpoint.getModel()),
                         imagePath != null,
-                        preview(config.getSystemPrompt(), 240));
-                return invoke(endpoint, config.getSystemPrompt(), question, imagePath);
+                        preview(effectiveSystemPrompt, 240));
+                return invoke(endpoint, effectiveSystemPrompt, trimmedQuestion, imageDataUrl, imagePath);
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+                throw ex;
             } catch (Exception ex) {
                 log.warn("AI request failed on endpoint {}: {}", safe(endpoint.getName()), ex.getMessage());
                 failures.add((endpoint.getName() == null || endpoint.getName().isBlank() ? "未命名接口" : endpoint.getName())
@@ -64,16 +70,16 @@ public class AiService {
         throw new IllegalStateException("所有 API 调用都失败了\n" + String.join("\n", failures));
     }
 
-    private String invoke(ApiEndpointConfig endpoint, String systemPrompt, String question, Path imagePath)
+    private String invoke(ApiEndpointConfig endpoint, String systemPrompt, String question, String imageDataUrl, Path imagePath)
             throws IOException, InterruptedException {
-        return doRequest(endpoint, systemPrompt, question, imagePath);
+        return doRequest(endpoint, systemPrompt, question, imageDataUrl, imagePath);
     }
 
-    private String doRequest(ApiEndpointConfig endpoint, String systemPrompt, String question, Path imagePath)
+    private String doRequest(ApiEndpointConfig endpoint, String systemPrompt, String question, String imageDataUrl, Path imagePath)
             throws IOException, InterruptedException {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("model", endpoint.getModel());
-        List<Map<String, Object>> messages = buildMessages(systemPrompt, question, imagePath);
+        List<Map<String, Object>> messages = buildMessages(systemPrompt, question, imageDataUrl);
         payload.put("messages", messages);
 
         log.info("Sending AI payload. endpointName={}, requestUrl={}, model={}, systemPrompt={}, userQuestion={}, imagePath={}, messages={}",
@@ -107,27 +113,41 @@ public class AiService {
         return content.trim();
     }
 
-    private List<Map<String, Object>> buildMessages(String systemPrompt, String question, Path imagePath) throws IOException {
+    private List<Map<String, Object>> buildMessages(String systemPrompt, String question, String imageDataUrl) {
         List<Map<String, Object>> messages = new ArrayList<>();
         messages.add(Map.of("role", "system", "content", systemPrompt));
         String trimmedQuestion = question == null ? "" : question.trim();
 
-        if (imagePath == null) {
+        if (imageDataUrl == null) {
             messages.add(Map.of("role", "user", "content", trimmedQuestion));
             return messages;
         }
 
-        String base64 = Base64.getEncoder().encodeToString(Files.readAllBytes(imagePath));
         List<Map<String, Object>> userContent = new ArrayList<>();
         if (!trimmedQuestion.isBlank()) {
             userContent.add(Map.of("type", "text", "text", trimmedQuestion));
         }
         userContent.add(Map.of(
                 "type", "image_url",
-                "image_url", Map.of("url", "data:image/png;base64," + base64)
+                "image_url", Map.of("url", imageDataUrl)
         ));
         messages.add(Map.of("role", "user", "content", userContent));
         return messages;
+    }
+
+    private String encodeImageDataUrl(Path imagePath) throws IOException {
+        if (imagePath == null) {
+            return null;
+        }
+        String base64 = Base64.getEncoder().encodeToString(Files.readAllBytes(imagePath));
+        return "data:image/png;base64," + base64;
+    }
+
+    private String normalizeSystemPrompt(String systemPrompt) {
+        if (systemPrompt == null || systemPrompt.isBlank()) {
+            return ConfigService.DEFAULT_SYSTEM_PROMPT;
+        }
+        return systemPrompt.trim();
     }
 
     private String extractContent(JsonNode node) {
