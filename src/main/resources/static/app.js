@@ -258,9 +258,14 @@ function startPolling() {
 }
 
 /* ---------- 事件绑定 ---------- */
-el.openSettingsBtn.addEventListener("click", () => {
-  renderSettings();
-  el.settingsDialog.showModal();
+el.openSettingsBtn.addEventListener("click", async () => {
+  try {
+    state.config = await api("/api/config");
+    renderSettings();
+    el.settingsDialog.showModal();
+  } catch (error) {
+    window.alert(`读取设置失败：${error.message}`);
+  }
 });
 
 async function clearChatHistory() {
@@ -276,8 +281,6 @@ async function clearChatHistory() {
     window.alert(`清空失败：${error.message}`);
   }
 }
-
-window.clearChatHistory = clearChatHistory;
 
 if (el.clearHistoryBtn) {
   el.clearHistoryBtn.addEventListener("click", clearChatHistory);
