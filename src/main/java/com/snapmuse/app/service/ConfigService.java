@@ -57,6 +57,7 @@ public class ConfigService {
 
     public AppConfig getConfig() {
         synchronized (lock) {
+            reloadConfigFromDiskQuietly();
             return objectMapper.convertValue(currentConfig, AppConfig.class);
         }
     }
@@ -98,6 +99,19 @@ public class ConfigService {
 
     private void persist(AppConfig config) throws IOException {
         objectMapper.writerWithDefaultPrettyPrinter().writeValue(configFile.toFile(), config);
+    }
+
+    private void reloadConfigFromDiskQuietly() {
+        if (!Files.exists(configFile)) {
+            return;
+        }
+        try {
+            currentConfig = loadConfigWithRepair();
+            ensureFixedApiSlots(currentConfig);
+            ensureScreenshotDirectory(currentConfig.getScreenshotDirectory());
+        } catch (IOException ex) {
+            log.warn("重新加载配置文件失败，继续使用内存中的配置: {}", ex.getMessage());
+        }
     }
 
     private AppConfig loadConfigWithRepair() throws IOException {
