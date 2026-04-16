@@ -59,34 +59,36 @@
             <button id="closeSettingsBtn" class="btn-icon-close" type="button" aria-label="关闭设置">✕</button>
         </div>
 
-        <section class="settings-section">
-            <h3>API 配置</h3>
-            <div id="apiConfigList" class="api-config-list"></div>
-        </section>
+        <div class="settings-body">
+            <section class="settings-section">
+                <h3>API 配置</h3>
+                <div id="apiConfigList" class="api-config-list"></div>
+            </section>
 
-        <section class="settings-section">
-            <h3>系统提示词</h3>
-            <textarea id="systemPromptInput" class="settings-textarea" placeholder="在此输入系统提示词…"></textarea>
-        </section>
+            <section class="settings-section">
+                <h3>系统提示词</h3>
+                <textarea id="systemPromptInput" class="settings-textarea" placeholder="在此输入系统提示词…"></textarea>
+            </section>
 
-        <section class="settings-section inline-grid">
-            <label>
-                <span>截图保存目录</span>
-                <input id="screenshotDirectoryInput" type="text" placeholder="/path/to/screenshots">
-            </label>
-            <label>
-                <span>上滚快捷键</span>
-                <input id="scrollUpHotkeyInput" type="text" placeholder="ALT+UP">
-            </label>
-            <label>
-                <span>下滚快捷键</span>
-                <input id="scrollDownHotkeyInput" type="text" placeholder="ALT+DOWN">
-            </label>
-            <label>
-                <span>切换模型快捷键</span>
-                <input id="modelSwitchHotkeyInput" type="text" placeholder="ALT+M">
-            </label>
-        </section>
+            <section class="settings-section inline-grid">
+                <label>
+                    <span>截图保存目录</span>
+                    <input id="screenshotDirectoryInput" type="text" placeholder="/path/to/screenshots">
+                </label>
+                <label>
+                    <span>上滚快捷键</span>
+                    <input id="scrollUpHotkeyInput" type="text" placeholder="ALT+UP">
+                </label>
+                <label>
+                    <span>下滚快捷键</span>
+                    <input id="scrollDownHotkeyInput" type="text" placeholder="ALT+DOWN">
+                </label>
+                <label>
+                    <span>切换模型快捷键</span>
+                    <input id="modelSwitchHotkeyInput" type="text" placeholder="ALT+M">
+                </label>
+            </section>
+        </div>
 
         <div class="settings-footer">
             <button class="btn-save" type="submit">保存设置</button>
@@ -94,6 +96,6 @@
     </form>
 </dialog>
 
-<script src="/app.js?v=toolbar-model-1"></script>
+<script src="/app.js?v=settings-scroll-2"></script>
 </body>
 </html>
