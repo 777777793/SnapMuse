@@ -26,8 +26,14 @@ public class EventStreamService {
         SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
         emitters.add(emitter);
         emitter.onCompletion(() -> emitters.remove(emitter));
-        emitter.onTimeout(() -> emitters.remove(emitter));
-        emitter.onError(error -> emitters.remove(emitter));
+        emitter.onTimeout(() -> {
+            emitters.remove(emitter);
+            safeComplete(emitter);
+        });
+        emitter.onError(error -> {
+            emitters.remove(emitter);
+            safeComplete(emitter);
+        });
         return emitter;
     }
 
@@ -46,9 +52,37 @@ public class EventStreamService {
             try {
                 emitter.send(SseEmitter.event().name(type).data(json, MediaType.APPLICATION_JSON));
             } catch (Exception ex) {
-                try { emitter.complete(); } catch (Exception ignored) {}
+                if (!isClientDisconnect(ex)) {
+                    log.debug("SSE推送失败，已移除失效连接: type={}", type, ex);
+                }
+                safeComplete(emitter);
                 emitters.remove(emitter);
             }
         }
+    }
+
+    private void safeComplete(SseEmitter emitter) {
+        try {
+            emitter.complete();
+        } catch (Exception ignored) {
+        }
+    }
+
+    private boolean isClientDisconnect(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null) {
+                String normalized = message.toLowerCase();
+                if (normalized.contains("broken pipe")
+                        || normalized.contains("connection reset by peer")
+                        || normalized.contains("forcibly closed")
+                        || normalized.contains("async request not usable")) {
+                    return true;
+                }
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 }

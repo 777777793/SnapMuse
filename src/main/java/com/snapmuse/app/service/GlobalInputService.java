@@ -9,6 +9,7 @@ import com.github.kwhat.jnativehook.mouse.NativeMouseEvent;
 import com.github.kwhat.jnativehook.mouse.NativeMouseInputListener;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import java.io.IOException;
 import java.awt.Point;
 import java.util.HashSet;
 import java.util.Map;
@@ -149,7 +150,14 @@ public class GlobalInputService implements NativeMouseInputListener, NativeKeyLi
     public void nativeKeyPressed(NativeKeyEvent nativeEvent) {
         pressedKeys.add(nativeEvent.getKeyCode());
         AppConfig config = configService.getConfig();
-        if (matchesHotkey(config.getScrollUpHotkey()) && !config.getScrollUpHotkey().equalsIgnoreCase(lastTriggeredHotkey)) {
+        if (matchesHotkey(config.getModelSwitchHotkey()) && !config.getModelSwitchHotkey().equalsIgnoreCase(lastTriggeredHotkey)) {
+            lastTriggeredHotkey = config.getModelSwitchHotkey();
+            try {
+                configService.cyclePreferredApiIndex();
+            } catch (IOException ex) {
+                log.warn("切换优先模型失败: {}", ex.getMessage());
+            }
+        } else if (matchesHotkey(config.getScrollUpHotkey()) && !config.getScrollUpHotkey().equalsIgnoreCase(lastTriggeredHotkey)) {
             lastTriggeredHotkey = config.getScrollUpHotkey();
             runtimeStateService.hotkeyTriggered("UP");
         } else if (matchesHotkey(config.getScrollDownHotkey()) && !config.getScrollDownHotkey().equalsIgnoreCase(lastTriggeredHotkey)) {

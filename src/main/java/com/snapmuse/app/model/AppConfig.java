@@ -10,6 +10,9 @@ public class AppConfig {
     private String screenshotDirectory;
     private String scrollUpHotkey;
     private String scrollDownHotkey;
+    private String modelSwitchHotkey;
+    private int preferredApiIndex;
+    private boolean fallbackEnabled = true;
 
     public List<ApiEndpointConfig> getApiConfigs() {
         return apiConfigs;
@@ -49,5 +52,29 @@ public class AppConfig {
 
     public void setScrollDownHotkey(String scrollDownHotkey) {
         this.scrollDownHotkey = scrollDownHotkey;
+    }
+
+    public String getModelSwitchHotkey() {
+        return modelSwitchHotkey;
+    }
+
+    public void setModelSwitchHotkey(String modelSwitchHotkey) {
+        this.modelSwitchHotkey = modelSwitchHotkey;
+    }
+
+    public int getPreferredApiIndex() {
+        return preferredApiIndex;
+    }
+
+    public void setPreferredApiIndex(int preferredApiIndex) {
+        this.preferredApiIndex = preferredApiIndex;
+    }
+
+    public boolean isFallbackEnabled() {
+        return fallbackEnabled;
+    }
+
+    public void setFallbackEnabled(boolean fallbackEnabled) {
+        this.fallbackEnabled = fallbackEnabled;
     }
 }

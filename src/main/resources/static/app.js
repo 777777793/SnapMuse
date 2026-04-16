@@ -15,6 +15,9 @@ const el = {
   statusLamp:              document.getElementById("statusLamp"),
   statusMessage:           document.getElementById("statusMessage"),
   pendingLabel:            document.getElementById("pendingLabel"),
+  activeModelDisplay:      document.getElementById("activeModelDisplay"),
+  switchModelBtn:          document.getElementById("switchModelBtn"),
+  fallbackToggle:          document.getElementById("fallbackToggle"),
   chatLog:                 document.getElementById("chatLog"),
   clearHistoryBtn:         document.getElementById("clearHistoryBtn"),
   openSettingsBtn:         document.getElementById("openSettingsBtn"),
@@ -26,6 +29,7 @@ const el = {
   screenshotDirectoryInput:document.getElementById("screenshotDirectoryInput"),
   scrollUpHotkeyInput:     document.getElementById("scrollUpHotkeyInput"),
   scrollDownHotkeyInput:   document.getElementById("scrollDownHotkeyInput"),
+  modelSwitchHotkeyInput:  document.getElementById("modelSwitchHotkeyInput"),
 };
 
 /* ---------- 工具函数 ---------- */
@@ -72,6 +76,21 @@ function scrollChatToBottom() {
     applyScroll();
     window.requestAnimationFrame(applyScroll);
   });
+}
+
+function resolveActiveModelDisplay() {
+  if (state.runtime?.activeModelDisplay) {
+    return state.runtime.activeModelDisplay;
+  }
+  const configs = state.config?.apiConfigs || [];
+  if (!configs.length) {
+    return "未配置模型";
+  }
+  const index = Math.min(Math.max(state.config?.preferredApiIndex || 0, 0), configs.length - 1);
+  const endpoint = configs[index] || {};
+  const name = endpoint.name?.trim() || `模型 ${index + 1}`;
+  const model = endpoint.model?.trim() || "未配置模型";
+  return `${name} · ${model}`;
 }
 
 /* ---------- API ---------- */
@@ -125,12 +144,14 @@ function renderSettings() {
   el.screenshotDirectoryInput.value = state.config.screenshotDirectory || "";
   el.scrollUpHotkeyInput.value     = state.config.scrollUpHotkey      || "ALT+UP";
   el.scrollDownHotkeyInput.value   = state.config.scrollDownHotkey    || "ALT+DOWN";
+  el.modelSwitchHotkeyInput.value  = state.config.modelSwitchHotkey   || "ALT+M";
 }
 
 function collectSettingsForm() {
   const valueOf = (name) =>
     el.settingsForm.querySelector(`[name="${name}"]`)?.value?.trim() || "";
-  const apiConfigs = Array.from({ length: 3 }).map((_, index) => ({
+  const slotCount = Math.max(state.config?.apiConfigs?.length || 0, 5);
+  const apiConfigs = Array.from({ length: slotCount }).map((_, index) => ({
     name:    valueOf(`api-name-${index}`),
     baseUrl: valueOf(`api-base-${index}`),
     apiKey:  valueOf(`api-key-${index}`),
@@ -142,6 +163,9 @@ function collectSettingsForm() {
     screenshotDirectory: el.screenshotDirectoryInput.value.trim(),
     scrollUpHotkey:      el.scrollUpHotkeyInput.value.trim(),
     scrollDownHotkey:    el.scrollDownHotkeyInput.value.trim(),
+    modelSwitchHotkey:   el.modelSwitchHotkeyInput.value.trim(),
+    preferredApiIndex:   state.config?.preferredApiIndex || 0,
+    fallbackEnabled:     state.runtime?.fallbackEnabled ?? state.config?.fallbackEnabled ?? true,
   };
 }
 
@@ -164,6 +188,8 @@ function applyRuntime(runtime) {
   const busy = !!runtime.aiBusy;
   el.pendingLabel.textContent = busy ? "AI 处理中…" : "";
   el.pendingLabel.classList.toggle("is-busy", busy);
+  el.activeModelDisplay.textContent = resolveActiveModelDisplay();
+  el.fallbackToggle.checked = !!runtime.fallbackEnabled;
 
   // 热键触发的滚动
   if (runtime.lastHotkeyAt && runtime.lastHotkeyAt !== state.lastHotkeyAt) {
@@ -285,7 +311,12 @@ function startPolling() {
 /* ---------- 事件绑定 ---------- */
 el.openSettingsBtn.addEventListener("click", async () => {
   try {
-    state.config = await api("/api/config");
+    const [config, runtime] = await Promise.all([
+      api("/api/config"),
+      api("/api/state"),
+    ]);
+    state.config = config;
+    applyRuntime(runtime);
     renderSettings();
     el.settingsDialog.showModal();
   } catch (error) {
@@ -311,6 +342,34 @@ if (el.clearHistoryBtn) {
   el.clearHistoryBtn.addEventListener("click", clearChatHistory);
 }
 
+if (el.switchModelBtn) {
+  el.switchModelBtn.addEventListener("click", async () => {
+    try {
+      state.config = await api("/api/model/next", { method: "POST" });
+      applyRuntime(await api("/api/state"));
+      renderSettings();
+    } catch (error) {
+      window.alert(`切换模型失败：${error.message}`);
+    }
+  });
+}
+
+if (el.fallbackToggle) {
+  el.fallbackToggle.addEventListener("change", async () => {
+    const nextValue = el.fallbackToggle.checked;
+    try {
+      state.config = await api("/api/model/fallback", {
+        method: "POST",
+        body: JSON.stringify({ enabled: nextValue }),
+      });
+      applyRuntime(await api("/api/state"));
+    } catch (error) {
+      el.fallbackToggle.checked = !nextValue;
+      window.alert(`切换降级开关失败：${error.message}`);
+    }
+  });
+}
+
 el.closeSettingsBtn.addEventListener("click", () => {
   el.settingsDialog.close();
 });
@@ -328,6 +387,7 @@ el.settingsForm.addEventListener("submit", async (event) => {
       body: JSON.stringify(collectSettingsForm()),
     });
     renderSettings();
+    applyRuntime(await api("/api/state"));
     el.settingsDialog.close();
   } catch (error) {
     window.alert(`保存设置失败：${error.message}`);

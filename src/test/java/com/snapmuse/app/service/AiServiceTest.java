@@ -17,32 +17,31 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class AiServiceTest {
 
-    private HttpServer firstServer;
-    private HttpServer secondServer;
+    private HttpServer server;
 
     @AfterEach
     void tearDown() {
-        if (firstServer != null) {
-            firstServer.stop(0);
-        }
-        if (secondServer != null) {
-            secondServer.stop(0);
+        if (server != null) {
+            server.stop(0);
         }
     }
 
     @Test
     void fallsBackToNextApiWhenFirstEndpointFails() throws Exception {
-        firstServer = startServer(0, 500, """
+        server = HttpServer.create(new InetSocketAddress(0), 0);
+        server.createContext("/first/chat/completions", exchange -> respond(exchange, 500, """
                 {"error":{"message":"first endpoint failed"}}
-                """);
-        secondServer = startServer(0, 200, """
+                """));
+        server.createContext("/second/chat/completions", exchange -> respond(exchange, 200, """
                 {"choices":[{"message":{"content":"second endpoint answer"}}]}
-                """);
+                """));
+        server.start();
+        int port = server.getAddress().getPort();
 
         AppConfig config = new AppConfig();
         config.setApiConfigs(List.of(
-                new ApiEndpointConfig("主接口", "http://127.0.0.1:" + firstServer.getAddress().getPort(), "key-1", "model-1"),
-                new ApiEndpointConfig("兜底接口 1", "http://127.0.0.1:" + secondServer.getAddress().getPort(), "key-2", "model-2")
+                new ApiEndpointConfig("主接口", "http://127.0.0.1:" + port + "/first", "key-1", "model-1"),
+                new ApiEndpointConfig("兜底接口 1", "http://127.0.0.1:" + port + "/second", "key-2", "model-2")
         ));
         config.setSystemPrompt("test prompt");
 
@@ -54,19 +53,14 @@ class AiServiceTest {
     }
 
     private ConfigService stubConfigService(AppConfig config) {
-        return new ConfigService(new ObjectMapper()) {
+        EventStreamService eventStreamService = new EventStreamService(new ObjectMapper());
+        RuntimeStateService runtimeStateService = new RuntimeStateService(eventStreamService);
+        return new ConfigService(new ObjectMapper(), runtimeStateService) {
             @Override
             public AppConfig getConfig() {
                 return config;
             }
         };
-    }
-
-    private HttpServer startServer(int port, int statusCode, String responseBody) throws IOException {
-        HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
-        server.createContext("/chat/completions", exchange -> respond(exchange, statusCode, responseBody));
-        server.start();
-        return server;
     }
 
     private void respond(HttpExchange exchange, int statusCode, String responseBody) throws IOException {

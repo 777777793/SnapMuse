@@ -1,6 +1,7 @@
 package com.snapmuse.app.controller;
 
 import com.snapmuse.app.dto.AskRequest;
+import com.snapmuse.app.dto.FallbackToggleRequest;
 import com.snapmuse.app.dto.StartSelectionRequest;
 import com.snapmuse.app.model.AppConfig;
 import com.snapmuse.app.service.ChatHistoryService;
@@ -75,6 +76,24 @@ public class ApiController {
     public Map<String, String> clearHistory() {
         chatHistoryService.clearMessages();
         return Map.of("message", "已清空对话记录");
+    }
+
+    @PostMapping("/model/next")
+    public AppConfig switchToNextModel() {
+        try {
+            return configService.cyclePreferredApiIndex();
+        } catch (IOException ex) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "切换模型失败: " + ex.getMessage(), ex);
+        }
+    }
+
+    @PostMapping("/model/fallback")
+    public AppConfig updateFallback(@RequestBody FallbackToggleRequest request) {
+        try {
+            return configService.updateFallbackEnabled(request.isEnabled());
+        } catch (IOException ex) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "切换降级开关失败: " + ex.getMessage(), ex);
+        }
     }
 
     @GetMapping("/events")

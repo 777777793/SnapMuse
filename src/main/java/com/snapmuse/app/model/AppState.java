@@ -11,6 +11,10 @@ public class AppState {
     private String lastHotkeyDirection;
     private long lastHotkeyAt;
     private String lampState;
+    private int activeModelIndex;
+    private String activeModelName;
+    private String activeModelDisplay;
+    private boolean fallbackEnabled;
 
     public boolean isHookReady() {
         return hookReady;
@@ -82,5 +86,37 @@ public class AppState {
 
     public void setLampState(String lampState) {
         this.lampState = lampState;
+    }
+
+    public int getActiveModelIndex() {
+        return activeModelIndex;
+    }
+
+    public void setActiveModelIndex(int activeModelIndex) {
+        this.activeModelIndex = activeModelIndex;
+    }
+
+    public String getActiveModelName() {
+        return activeModelName;
+    }
+
+    public void setActiveModelName(String activeModelName) {
+        this.activeModelName = activeModelName;
+    }
+
+    public String getActiveModelDisplay() {
+        return activeModelDisplay;
+    }
+
+    public void setActiveModelDisplay(String activeModelDisplay) {
+        this.activeModelDisplay = activeModelDisplay;
+    }
+
+    public boolean isFallbackEnabled() {
+        return fallbackEnabled;
+    }
+
+    public void setFallbackEnabled(boolean fallbackEnabled) {
+        this.fallbackEnabled = fallbackEnabled;
     }
 }

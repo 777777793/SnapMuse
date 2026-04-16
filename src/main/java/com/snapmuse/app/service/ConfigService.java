@@ -36,10 +36,12 @@ public class ConfigService {
     private final Path appRoot = Paths.get("").toAbsolutePath();
     private final Path dataDirectory = appRoot.resolve("snapmuse-data");
     private final Path configFile = dataDirectory.resolve("config.json");
+    private final RuntimeStateService runtimeStateService;
     private AppConfig currentConfig;
 
-    public ConfigService(ObjectMapper objectMapper) {
+    public ConfigService(ObjectMapper objectMapper, RuntimeStateService runtimeStateService) {
         this.objectMapper = objectMapper;
+        this.runtimeStateService = runtimeStateService;
     }
 
     @PostConstruct
@@ -52,7 +54,9 @@ public class ConfigService {
             persist(currentConfig);
         }
         ensureFixedApiSlots(currentConfig);
+        normalizeConfig(currentConfig);
         ensureScreenshotDirectory(currentConfig.getScreenshotDirectory());
+        runtimeStateService.applyConfig(currentConfig);
     }
 
     public AppConfig getConfig() {
@@ -65,30 +69,40 @@ public class ConfigService {
     public AppConfig saveConfig(AppConfig config) throws IOException {
         synchronized (lock) {
             ensureFixedApiSlots(config);
-            if (config.getSystemPrompt() == null || config.getSystemPrompt().isBlank()) {
-                config.setSystemPrompt(defaultConfig().getSystemPrompt());
-            }
-            if (config.getScreenshotDirectory() == null || config.getScreenshotDirectory().isBlank()) {
-                config.setScreenshotDirectory(defaultConfig().getScreenshotDirectory());
-            }
-            if (config.getScrollUpHotkey() == null || config.getScrollUpHotkey().isBlank()) {
-                config.setScrollUpHotkey("ALT+UP");
-            }
-            if (config.getScrollDownHotkey() == null || config.getScrollDownHotkey().isBlank()) {
-                config.setScrollDownHotkey("ALT+DOWN");
-            }
-            config.setSystemPrompt(config.getSystemPrompt().trim());
-            config.setScreenshotDirectory(config.getScreenshotDirectory().trim());
-            config.setScrollUpHotkey(config.getScrollUpHotkey().trim());
-            config.setScrollDownHotkey(config.getScrollDownHotkey().trim());
+            normalizeConfig(config);
             ensureScreenshotDirectory(config.getScreenshotDirectory());
             currentConfig = objectMapper.convertValue(config, AppConfig.class);
             persist(currentConfig);
+            runtimeStateService.applyConfig(currentConfig);
             log.info("Config saved. screenshotDirectory={}, scrollUpHotkey={}, scrollDownHotkey={}, systemPrompt={}",
                     currentConfig.getScreenshotDirectory(),
                     currentConfig.getScrollUpHotkey(),
                     currentConfig.getScrollDownHotkey(),
                     preview(currentConfig.getSystemPrompt(), 200));
+            return objectMapper.convertValue(currentConfig, AppConfig.class);
+        }
+    }
+
+    public AppConfig cyclePreferredApiIndex() throws IOException {
+        synchronized (lock) {
+            reloadConfigFromDiskQuietly();
+            int size = currentConfig.getApiConfigs().size();
+            int nextIndex = size == 0 ? 0 : (currentConfig.getPreferredApiIndex() + 1) % size;
+            currentConfig.setPreferredApiIndex(nextIndex);
+            persist(currentConfig);
+            runtimeStateService.applyConfig(currentConfig);
+            log.info("Preferred model switched to index={}, display={}", nextIndex, buildModelDisplay(currentConfig, nextIndex));
+            return objectMapper.convertValue(currentConfig, AppConfig.class);
+        }
+    }
+
+    public AppConfig updateFallbackEnabled(boolean enabled) throws IOException {
+        synchronized (lock) {
+            reloadConfigFromDiskQuietly();
+            currentConfig.setFallbackEnabled(enabled);
+            persist(currentConfig);
+            runtimeStateService.applyConfig(currentConfig);
+            log.info("Fallback enabled updated: {}", enabled);
             return objectMapper.convertValue(currentConfig, AppConfig.class);
         }
     }
@@ -108,7 +122,9 @@ public class ConfigService {
         try {
             currentConfig = loadConfigWithRepair();
             ensureFixedApiSlots(currentConfig);
+            normalizeConfig(currentConfig);
             ensureScreenshotDirectory(currentConfig.getScreenshotDirectory());
+            runtimeStateService.applyConfig(currentConfig);
         } catch (IOException ex) {
             log.warn("重新加载配置文件失败，继续使用内存中的配置: {}", ex.getMessage());
         }
@@ -161,11 +177,16 @@ public class ConfigService {
         endpoints.add(new ApiEndpointConfig("主接口", "https://api.openai.com/v1", "", "gpt-4.1-mini"));
         endpoints.add(new ApiEndpointConfig("兜底接口 1", "https://api.openai.com/v1", "", "gpt-4.1-mini"));
         endpoints.add(new ApiEndpointConfig("兜底接口 2", "https://api.openai.com/v1", "", "gpt-4.1-mini"));
+        endpoints.add(new ApiEndpointConfig("兜底接口 3", "https://api.openai.com/v1", "", "gpt-4.1-mini"));
+        endpoints.add(new ApiEndpointConfig("兜底接口 4", "https://api.openai.com/v1", "", "gpt-4.1-mini"));
         config.setApiConfigs(endpoints);
         config.setSystemPrompt(DEFAULT_SYSTEM_PROMPT);
         config.setScreenshotDirectory(appRoot.resolve("snapmuse-data").resolve("screenshots").toString());
         config.setScrollUpHotkey("ALT+UP");
         config.setScrollDownHotkey("ALT+DOWN");
+        config.setModelSwitchHotkey("ALT+M");
+        config.setPreferredApiIndex(0);
+        config.setFallbackEnabled(true);
         return config;
     }
 
@@ -177,12 +198,52 @@ public class ConfigService {
         if (config.getApiConfigs() == null) {
             config.setApiConfigs(new ArrayList<>());
         }
-        while (config.getApiConfigs().size() < 3) {
+        while (config.getApiConfigs().size() < 5) {
             config.getApiConfigs().add(new ApiEndpointConfig("接口 " + (config.getApiConfigs().size() + 1), "", "", ""));
         }
-        if (config.getApiConfigs().size() > 3) {
-            config.setApiConfigs(new ArrayList<>(config.getApiConfigs().subList(0, 3)));
+        if (config.getApiConfigs().size() > 5) {
+            config.setApiConfigs(new ArrayList<>(config.getApiConfigs().subList(0, 5)));
         }
+    }
+
+    private void normalizeConfig(AppConfig config) {
+        AppConfig defaults = defaultConfig();
+        if (config.getSystemPrompt() == null || config.getSystemPrompt().isBlank()) {
+            config.setSystemPrompt(defaults.getSystemPrompt());
+        }
+        if (config.getScreenshotDirectory() == null || config.getScreenshotDirectory().isBlank()) {
+            config.setScreenshotDirectory(defaults.getScreenshotDirectory());
+        }
+        if (config.getScrollUpHotkey() == null || config.getScrollUpHotkey().isBlank()) {
+            config.setScrollUpHotkey(defaults.getScrollUpHotkey());
+        }
+        if (config.getScrollDownHotkey() == null || config.getScrollDownHotkey().isBlank()) {
+            config.setScrollDownHotkey(defaults.getScrollDownHotkey());
+        }
+        if (config.getModelSwitchHotkey() == null || config.getModelSwitchHotkey().isBlank()) {
+            config.setModelSwitchHotkey(defaults.getModelSwitchHotkey());
+        }
+        config.setSystemPrompt(config.getSystemPrompt().trim());
+        config.setScreenshotDirectory(config.getScreenshotDirectory().trim());
+        config.setScrollUpHotkey(config.getScrollUpHotkey().trim());
+        config.setScrollDownHotkey(config.getScrollDownHotkey().trim());
+        config.setModelSwitchHotkey(config.getModelSwitchHotkey().trim());
+        if (config.getPreferredApiIndex() < 0) {
+            config.setPreferredApiIndex(0);
+        }
+        if (config.getPreferredApiIndex() >= config.getApiConfigs().size()) {
+            config.setPreferredApiIndex(Math.max(0, config.getApiConfigs().size() - 1));
+        }
+    }
+
+    private String buildModelDisplay(AppConfig config, int index) {
+        if (config.getApiConfigs() == null || config.getApiConfigs().isEmpty()) {
+            return "未配置模型";
+        }
+        ApiEndpointConfig endpoint = config.getApiConfigs().get(Math.max(0, Math.min(index, config.getApiConfigs().size() - 1)));
+        String name = endpoint.getName() == null || endpoint.getName().isBlank() ? "模型 " + (index + 1) : endpoint.getName().trim();
+        String model = endpoint.getModel() == null || endpoint.getModel().isBlank() ? "未配置模型" : endpoint.getModel().trim();
+        return name + " · " + model;
     }
 
     private String preview(String text, int limit) {

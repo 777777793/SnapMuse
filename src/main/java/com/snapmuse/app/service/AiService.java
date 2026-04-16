@@ -43,8 +43,14 @@ public class AiService {
         String trimmedQuestion = question == null ? "" : question.trim();
         String imageDataUrl = encodeImageDataUrl(imagePath);
         List<String> failures = new ArrayList<>();
-        for (ApiEndpointConfig endpoint : config.getApiConfigs()) {
+        List<Integer> candidateIndexes = resolveCandidateIndexes(config);
+        for (int candidateIndex : candidateIndexes) {
+            ApiEndpointConfig endpoint = config.getApiConfigs().get(candidateIndex);
             if (!isUsable(endpoint)) {
+                failures.add(buildEndpointLabel(endpoint, candidateIndex) + ": 当前模型配置不完整");
+                if (!config.isFallbackEnabled()) {
+                    break;
+                }
                 continue;
             }
             try {
@@ -188,6 +194,29 @@ public class AiService {
                 && endpoint.getBaseUrl() != null && !endpoint.getBaseUrl().isBlank()
                 && endpoint.getApiKey() != null && !endpoint.getApiKey().isBlank()
                 && endpoint.getModel() != null && !endpoint.getModel().isBlank();
+    }
+
+    private List<Integer> resolveCandidateIndexes(AppConfig config) {
+        int size = config.getApiConfigs() == null ? 0 : config.getApiConfigs().size();
+        if (size == 0) {
+            return List.of();
+        }
+        int preferredIndex = Math.max(0, Math.min(config.getPreferredApiIndex(), size - 1));
+        if (!config.isFallbackEnabled()) {
+            return List.of(preferredIndex);
+        }
+        List<Integer> indexes = new ArrayList<>();
+        for (int offset = 0; offset < size; offset++) {
+            indexes.add((preferredIndex + offset) % size);
+        }
+        return indexes;
+    }
+
+    private String buildEndpointLabel(ApiEndpointConfig endpoint, int index) {
+        if (endpoint != null && endpoint.getName() != null && !endpoint.getName().isBlank()) {
+            return endpoint.getName().trim();
+        }
+        return "模型 " + (index + 1);
     }
 
     private Object sanitizeMessagesForLog(List<Map<String, Object>> messages) {

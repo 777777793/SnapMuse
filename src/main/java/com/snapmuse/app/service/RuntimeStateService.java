@@ -1,5 +1,7 @@
 package com.snapmuse.app.service;
 
+import com.snapmuse.app.model.ApiEndpointConfig;
+import com.snapmuse.app.model.AppConfig;
 import com.snapmuse.app.model.AppState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -97,6 +99,16 @@ public class RuntimeStateService {
         publish();
     }
 
+    public void applyConfig(AppConfig config) {
+        boolean changed;
+        synchronized (lock) {
+            changed = updateConfigFields(config);
+        }
+        if (changed) {
+            publish();
+        }
+    }
+
     public void publish() {
         AppState snapshot = getState();
         log.info("状态变更: lamp={}, msg={}", snapshot.getLampState(), snapshot.getStatusMessage());
@@ -114,6 +126,52 @@ public class RuntimeStateService {
         copy.setLastHotkeyDirection(source.getLastHotkeyDirection());
         copy.setLastHotkeyAt(source.getLastHotkeyAt());
         copy.setLampState(source.getLampState());
+        copy.setActiveModelIndex(source.getActiveModelIndex());
+        copy.setActiveModelName(source.getActiveModelName());
+        copy.setActiveModelDisplay(source.getActiveModelDisplay());
+        copy.setFallbackEnabled(source.isFallbackEnabled());
         return copy;
+    }
+
+    private boolean updateConfigFields(AppConfig config) {
+        int activeIndex = normalizePreferredIndex(config);
+        ApiEndpointConfig activeEndpoint = config.getApiConfigs().get(activeIndex);
+        String activeName = activeEndpoint.getName() == null || activeEndpoint.getName().isBlank()
+                ? "模型 " + (activeIndex + 1)
+                : activeEndpoint.getName().trim();
+        String modelName = activeEndpoint.getModel() == null || activeEndpoint.getModel().isBlank()
+                ? "未配置模型"
+                : activeEndpoint.getModel().trim();
+        String activeDisplay = activeName + " · " + modelName;
+        boolean fallbackEnabled = config.isFallbackEnabled();
+
+        boolean changed = state.getActiveModelIndex() != activeIndex
+                || !safeEquals(state.getActiveModelName(), activeName)
+                || !safeEquals(state.getActiveModelDisplay(), activeDisplay)
+                || state.isFallbackEnabled() != fallbackEnabled;
+
+        state.setActiveModelIndex(activeIndex);
+        state.setActiveModelName(activeName);
+        state.setActiveModelDisplay(activeDisplay);
+        state.setFallbackEnabled(fallbackEnabled);
+        return changed;
+    }
+
+    private int normalizePreferredIndex(AppConfig config) {
+        if (config == null || config.getApiConfigs() == null || config.getApiConfigs().isEmpty()) {
+            return 0;
+        }
+        int index = config.getPreferredApiIndex();
+        if (index < 0) {
+            return 0;
+        }
+        if (index >= config.getApiConfigs().size()) {
+            return config.getApiConfigs().size() - 1;
+        }
+        return index;
+    }
+
+    private boolean safeEquals(String left, String right) {
+        return left == null ? right == null : left.equals(right);
     }
 }

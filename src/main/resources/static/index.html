@@ -13,14 +13,32 @@
 </head>
 <body>
 
-<!-- ===== 顶栏 ===== -->
-<header class="topbar" id="topbar">
-    <div class="topbar-left">
+<!-- ===== 对话区（唯一主体，充满剩余高度并可滚动） ===== -->
+<main id="chatLog" class="chat-log" role="log" aria-label="对话记录" aria-live="polite"></main>
+
+<!-- ===== 底部工具栏 ===== -->
+<footer class="toolbar" id="toolbar">
+    <div class="toolbar-status">
         <span id="statusLamp" class="lamp lamp-off" title="状态指示"></span>
-        <span id="statusMessage" class="status-msg"></span>
+        <div class="toolbar-status-copy">
+            <span id="statusMessage" class="status-msg"></span>
+            <span id="pendingLabel" class="pending-label"></span>
+        </div>
     </div>
-    <div class="topbar-right">
-        <span id="pendingLabel" class="pending-label"></span>
+    <div class="toolbar-model">
+        <div class="toolbar-model-copy">
+            <span class="toolbar-label">当前模型</span>
+            <button id="switchModelBtn" class="btn-model-switch" type="button" title="切换优先模型">
+                <span id="activeModelDisplay" class="active-model-display">未配置模型</span>
+                <span class="btn-model-switch-hint">切换</span>
+            </button>
+        </div>
+        <label class="fallback-toggle" for="fallbackToggle">
+            <input id="fallbackToggle" type="checkbox">
+            <span>允许降级</span>
+        </label>
+    </div>
+    <div class="toolbar-actions">
         <button id="clearHistoryBtn" class="btn-clear-history" type="button" title="清空对话记录">清空记录</button>
         <button id="openSettingsBtn" class="btn-settings" type="button" title="打开设置">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -31,10 +49,7 @@
             设置
         </button>
     </div>
-</header>
-
-<!-- ===== 对话区（唯一主体，充满剩余高度并可滚动） ===== -->
-<main id="chatLog" class="chat-log" role="log" aria-label="对话记录" aria-live="polite"></main>
+</footer>
 
 <!-- ===== 设置弹窗 ===== -->
 <dialog id="settingsDialog" class="settings-dialog" aria-labelledby="settingsTitle">
@@ -67,6 +82,10 @@
                 <span>下滚快捷键</span>
                 <input id="scrollDownHotkeyInput" type="text" placeholder="ALT+DOWN">
             </label>
+            <label>
+                <span>切换模型快捷键</span>
+                <input id="modelSwitchHotkeyInput" type="text" placeholder="ALT+M">
+            </label>
         </section>
 
         <div class="settings-footer">
@@ -75,6 +94,6 @@
     </form>
 </dialog>
 
-<script src="/app.js?v=scroll-bottom-1"></script>
+<script src="/app.js?v=toolbar-model-1"></script>
 </body>
 </html>

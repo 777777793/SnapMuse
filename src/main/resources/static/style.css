@@ -13,7 +13,6 @@
     --success:   #3bb57a;
     --warn:      #d8a329;
     --err:       #d94f4f;
-    --topbar-h:  48px;
     --radius-lg: 14px;
     --radius-md: 9px;
     --radius-sm: 6px;
@@ -61,33 +60,63 @@ body {
     padding-top: var(--safe-top);
 }
 
-/* ===== 顶栏（固定高度，不参与滚动） ===== */
-.topbar {
+/* ===== 底部工具栏 ===== */
+.toolbar {
     flex-shrink: 0;
-    height: var(--topbar-h);
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 0 16px;
-    /* 左右安全区域（横屏刘海） */
+    padding: 14px 16px calc(14px + var(--safe-bottom));
     padding-left: max(16px, env(safe-area-inset-left, 16px));
     padding-right: max(16px, env(safe-area-inset-right, 16px));
     background: rgba(255,255,255,0.88);
-    border-bottom: 1px solid var(--border);
+    border-top: 1px solid var(--border);
     z-index: 20;
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
-    /* 防止内容被移动端选中 */
     user-select: none;
     -webkit-user-select: none;
+    flex-wrap: wrap;
 }
 
-.topbar-left,
-.topbar-right {
+.toolbar-status,
+.toolbar-model,
+.toolbar-actions {
     display: flex;
     align-items: center;
     gap: 10px;
+}
+
+.toolbar-status {
+    min-width: 0;
+    flex: 1 1 220px;
+}
+
+.toolbar-status-copy,
+.toolbar-model-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.toolbar-model {
+    flex: 1 1 280px;
+    justify-content: center;
+    gap: 14px;
+}
+
+.toolbar-actions {
+    flex: 1 1 180px;
+    justify-content: flex-end;
+}
+
+.toolbar-label {
+    font-size: 11px;
+    color: var(--ink-dim);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
 }
 
 /* ===== 状态指示灯 ===== */
@@ -121,7 +150,7 @@ body {
 .status-msg {
     font-size: 12px;
     color: var(--ink-dim);
-    max-width: 240px;
+    max-width: 300px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -191,14 +220,67 @@ body {
     background: rgba(217,79,79,0.08);
 }
 
+.btn-model-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding: 7px 12px;
+    border: 1px solid var(--border-hi);
+    border-radius: var(--radius-md);
+    background: rgba(255,255,255,0.76);
+    color: var(--ink);
+    font-family: var(--font);
+    font-size: 13px;
+    cursor: pointer;
+    transition: border-color var(--transition), background var(--transition), transform var(--transition);
+}
+
+.btn-model-switch:hover {
+    border-color: rgba(213,106,55,0.3);
+    background: #fff;
+}
+
+.btn-model-switch:active {
+    transform: scale(0.98);
+}
+
+.active-model-display {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.btn-model-switch-hint {
+    flex-shrink: 0;
+    font-size: 12px;
+    color: var(--accent);
+}
+
+.fallback-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--ink-dim);
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.fallback-toggle input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
 /* ===== 对话区（flex:1 撑满剩余高度，自身滚动） ===== */
 .chat-log {
     flex: 1;
     min-height: 0;          /* 关键：让 flex 子项参与滚动裁剪 */
     overflow-y: auto;
     overflow-x: hidden;
-    /* 底部留出安全区域（iPhone Home 条） */
-    padding: 20px 16px calc(24px + var(--safe-bottom));
+    padding: 20px 16px 20px;
     padding-left: max(16px, env(safe-area-inset-left, 16px));
     padding-right: max(16px, env(safe-area-inset-right, 16px));
     display: flex;
@@ -523,8 +605,21 @@ textarea:focus, input:focus {
 @media (max-width: 600px) {
     .inline-grid { grid-template-columns: 1fr; }
     .api-card-grid { grid-template-columns: 1fr; }
-    .status-msg { display: none; }
-    /* 移动端气泡最大宽度放宽 */
+    .toolbar {
+        gap: 10px;
+    }
+    .toolbar-status,
+    .toolbar-model,
+    .toolbar-actions {
+        flex: 1 1 100%;
+        justify-content: flex-start;
+    }
+    .toolbar-actions {
+        justify-content: space-between;
+    }
+    .active-model-display {
+        max-width: 170px;
+    }
     .chat-item { max-width: 95%; }
     /* 设置弹窗全屏化 */
     .settings-dialog {
