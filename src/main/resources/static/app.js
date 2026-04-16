@@ -7,6 +7,7 @@ const state = {
   runtime: null,
   history: [],
   lastHotkeyAt: 0,
+  lastHistoryTailKey: "",
 };
 
 /* ---------- DOM 引用 ---------- */
@@ -48,6 +49,29 @@ function renderMarkdown(text) {
   } catch (_) {
     return escapeHtml(text);
   }
+}
+
+function buildHistoryTailKey(list) {
+  if (!list?.length) return "";
+  const last = list[list.length - 1];
+  return [
+    list.length,
+    last.id || "",
+    last.status || "",
+    last.createdAt || "",
+    last.content || "",
+  ].join("|");
+}
+
+function scrollChatToBottom() {
+  const applyScroll = () => {
+    el.chatLog.scrollTop = el.chatLog.scrollHeight;
+  };
+  applyScroll();
+  window.requestAnimationFrame(() => {
+    applyScroll();
+    window.requestAnimationFrame(applyScroll);
+  });
 }
 
 /* ---------- API ---------- */
@@ -155,6 +179,9 @@ function applyRuntime(runtime) {
 /* ---------- 对话历史渲染 ---------- */
 function renderHistory() {
   const list = state.history || [];
+  const nextTailKey = buildHistoryTailKey(list);
+  const shouldForceScroll = nextTailKey !== state.lastHistoryTailKey;
+
   if (!list.length) {
     el.chatLog.innerHTML = `
       <div class="empty-state">
@@ -162,12 +189,9 @@ function renderHistory() {
         <span>还没有对话记录</span>
         <span>截图后将自动在此显示问答内容</span>
       </div>`;
+    state.lastHistoryTailKey = "";
     return;
   }
-
-  // 判断是否已经滚动到底（在更新前检测）
-  const atBottom =
-    el.chatLog.scrollHeight - el.chatLog.scrollTop - el.chatLog.clientHeight < 60;
 
   el.chatLog.innerHTML = list.map((message) => {
     const isUser = message.role === "user";
@@ -192,9 +216,10 @@ function renderHistory() {
       </article>`;
   }).join("");
 
-  // 如之前已在底部，则自动滚到最新消息
-  if (atBottom) {
-    el.chatLog.scrollTop = el.chatLog.scrollHeight;
+  state.lastHistoryTailKey = nextTailKey;
+
+  if (shouldForceScroll) {
+    scrollChatToBottom();
   }
 }
 
