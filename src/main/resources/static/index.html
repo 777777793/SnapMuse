@@ -8,12 +8,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/style.css?v=stream-3">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
 
-<!-- ===== 对话区（唯一主体，充满剩余高度并可滚动） ===== -->
+<!-- ===== 对话区 ===== -->
 <main id="chatLog" class="chat-log" role="log" aria-label="对话记录" aria-live="polite"></main>
 
 <!-- ===== 底部工具栏 ===== -->
@@ -30,10 +30,10 @@
 
         <div class="toolbar-sep"></div>
 
-        <!-- 模型选择 -->
+        <!-- 模型选择 + 降级勾选 -->
         <div class="model-section">
             <div class="model-trigger-wrap">
-                <button id="switchModelBtn" class="model-trigger" type="button" title="选择模型">
+                <button id="switchModelBtn" class="model-trigger" type="button" title="选择模型 / 配置降级">
                     <svg class="model-trigger-icon" viewBox="0 0 16 16" fill="none">
                         <circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.4"/>
                         <path d="M8 2v1.5M8 12.5V14M2 8h1.5M12.5 8H14M3.7 3.7l1.1 1.1M11.2 11.2l1.1 1.1M3.7 12.3l1.1-1.1M11.2 4.8l1.1-1.1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
@@ -44,22 +44,21 @@
                     </svg>
                 </button>
                 <div id="modelPicker" class="model-picker" hidden>
+                    <div class="model-picker-header">选择主模型 &amp; 配置降级顺序</div>
                     <div id="modelPickerList" class="model-picker-list"></div>
                 </div>
             </div>
-            <label class="fallback-toggle" for="fallbackToggle" title="允许降级到备用模型">
-                <span class="fallback-text">降级</span>
-                <span class="toggle-control">
-                    <input id="fallbackToggle" type="checkbox">
-                    <span class="fallback-switch"></span>
-                </span>
-            </label>
         </div>
 
         <div class="toolbar-sep"></div>
 
         <!-- 操作 -->
         <div class="action-section">
+            <button id="stopBtn" class="tool-btn tool-btn-stop" type="button" title="停止回答" disabled>
+                <svg viewBox="0 0 20 20" fill="none">
+                    <rect x="5" y="5" width="10" height="10" rx="2" fill="currentColor"/>
+                </svg>
+            </button>
             <button id="clearHistoryBtn" class="tool-btn tool-btn-danger" type="button" title="清空记录">
                 <svg viewBox="0 0 20 20" fill="none">
                     <path d="M6.5 8.5v6M10 8.5v6M13.5 8.5v6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
@@ -125,6 +124,6 @@
     </form>
 </dialog>
 
-<script src="/app.js?v=model-picker-1"></script>
+<script src="/app.js?v=stream-3"></script>
 </body>
 </html>

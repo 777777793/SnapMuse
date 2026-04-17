@@ -1,7 +1,6 @@
 package com.snapmuse.app.controller;
 
 import com.snapmuse.app.dto.AskRequest;
-import com.snapmuse.app.dto.FallbackToggleRequest;
 import com.snapmuse.app.dto.ModelSelectRequest;
 import com.snapmuse.app.dto.StartSelectionRequest;
 import com.snapmuse.app.model.AppConfig;
@@ -12,6 +11,7 @@ import com.snapmuse.app.service.EventStreamService;
 import com.snapmuse.app.service.RuntimeStateService;
 import com.snapmuse.app.service.SelectionService;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -98,12 +98,20 @@ public class ApiController {
     }
 
     @PostMapping("/model/fallback")
-    public AppConfig updateFallback(@RequestBody FallbackToggleRequest request) {
+    public AppConfig updateFallback(@RequestBody Map<String, Object> request) {
         try {
-            return configService.updateFallbackEnabled(request.isEnabled());
+            @SuppressWarnings("unchecked")
+            List<Integer> indexes = (List<Integer>) request.get("fallbackIndexes");
+            return configService.updateFallbackIndexes(indexes);
         } catch (IOException ex) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "切换降级开关失败: " + ex.getMessage(), ex);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "更新降级配置失败: " + ex.getMessage(), ex);
         }
+    }
+
+    @PostMapping("/stop")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void stopConversation() {
+        conversationService.stop();
     }
 
     @GetMapping("/events")

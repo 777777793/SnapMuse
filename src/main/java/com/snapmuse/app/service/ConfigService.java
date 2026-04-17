@@ -109,13 +109,13 @@ public class ConfigService {
         }
     }
 
-    public AppConfig updateFallbackEnabled(boolean enabled) throws IOException {
+    public AppConfig updateFallbackIndexes(List<Integer> indexes) throws IOException {
         synchronized (lock) {
             reloadConfigFromDiskQuietly();
-            currentConfig.setFallbackEnabled(enabled);
+            currentConfig.setFallbackIndexes(indexes == null ? new java.util.ArrayList<>() : indexes);
             persist(currentConfig);
             runtimeStateService.applyConfig(currentConfig);
-            log.info("Fallback enabled updated: {}", enabled);
+            log.info("Fallback indexes updated: {}", indexes);
             return objectMapper.convertValue(currentConfig, AppConfig.class);
         }
     }

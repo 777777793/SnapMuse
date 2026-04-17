@@ -10,6 +10,8 @@ public class ChatMessage {
     private String content;
     private String status;
     private String screenshotPath;
+    private String modelName;
+    private String streamingHint;
     private Instant createdAt = Instant.now();
 
     public ChatMessage() {
@@ -60,6 +62,22 @@ public class ChatMessage {
 
     public void setScreenshotPath(String screenshotPath) {
         this.screenshotPath = screenshotPath;
+    }
+
+    public String getModelName() {
+        return modelName;
+    }
+
+    public void setModelName(String modelName) {
+        this.modelName = modelName;
+    }
+
+    public String getStreamingHint() {
+        return streamingHint;
+    }
+
+    public void setStreamingHint(String streamingHint) {
+        this.streamingHint = streamingHint;
     }
 
     public Instant getCreatedAt() {

@@ -71,6 +71,44 @@ public class ChatHistoryService {
         publish();
     }
 
+    /** 流式输出时追加内容：只推 SSE，不写磁盘，减少 IO 开销。 */
+    public void appendMessageChunk(ChatMessage message, String chunk) {
+        long now = System.currentTimeMillis();
+        synchronized (lock) {
+            message.setContent(message.getContent() + chunk);
+            if (now - lastStreamPublish < 80) {
+                return;
+            }
+            lastStreamPublish = now;
+        }
+        publish();
+    }
+
+    /** 降级切换时更新气泡内的提示文字，不写磁盘。 */
+    public void setStreamingHint(ChatMessage message, String hint) {
+        synchronized (lock) {
+            message.setStreamingHint(hint);
+            lastStreamPublish = 0; // 强制立即推送
+        }
+        publish();
+    }
+
+    private volatile long lastStreamPublish = 0;
+
+    /** 流式结束后调用：将最终内容持久化到磁盘。 */
+    public void finalizeMessage(ChatMessage message) {
+        synchronized (lock) {
+            for (int index = 0; index < messages.size(); index++) {
+                if (messages.get(index).getId().equals(message.getId())) {
+                    messages.set(index, message);
+                    break;
+                }
+            }
+            persistQuietly();
+        }
+        publish();
+    }
+
     public void clearMessages() {
         synchronized (lock) {
             log.info("Clearing chat history, current size={}", messages.size());
